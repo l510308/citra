@@ -23,14 +23,19 @@ pad_l =
 pad_r =
 pad_zl =
 pad_zr =
-pad_sup =
-pad_sdown =
-pad_sleft =
-pad_sright =
 pad_cup =
 pad_cdown =
 pad_cleft =
 pad_cright =
+pad_circle_up =
+pad_circle_down =
+pad_circle_left =
+pad_circle_right =
+pad_circle_modifier =
+
+# The applied modifier scale to circle pad.
+# Must be in range of 0.0-1.0. Defaults to 0.5
+pad_circle_modifier_scale =
 
 [Core]
 # The applied frameskip amount. Must be a power of two.
@@ -66,7 +71,11 @@ output_engine =
 # 1 (default): Yes, 0: No
 use_virtual_sd =
 
-[System Region]
+[System]
+# The system model that Citra will try to emulate
+# 0: Old 3DS (default), 1: New 3DS
+is_new_3ds =
+
 # The system region that Citra will use during emulation
 # 0: Japan, 1: USA (default), 2: Europe, 3: Australia, 4: China, 5: Korea, 6: Taiwan
 region_value =

@@ -14,6 +14,7 @@
 #include "core/hle/service/apt/apt_u.h"
 #include "core/hle/service/apt/bcfnt/bcfnt.h"
 #include "core/hle/service/fs/archive.h"
+#include "core/hle/service/ptm/ptm.h"
 
 #include "core/hle/kernel/event.h"
 #include "core/hle/kernel/mutex.h"
@@ -32,6 +33,9 @@ static Kernel::SharedPtr<Kernel::Event> notification_event; ///< APT notificatio
 static Kernel::SharedPtr<Kernel::Event> parameter_event; ///< APT parameter event
 
 static u32 cpu_percent; ///< CPU time available to the running application
+
+// APT::CheckNew3DSApp will check this unknown_ns_state_field to determine processing mode
+static u8 unknown_ns_state_field;
 
 /// Parameter data to be returned in the next call to Glance/ReceiveParameter
 static MessageParameter next_parameter;
@@ -176,12 +180,12 @@ void SendParameter(Service::Interface* self) {
     }
 
     MessageParameter param;
-    param.buffer_size = buffer_size;
     param.destination_id = dst_app_id;
     param.sender_id = src_app_id;
     param.object = Kernel::g_handle_table.GetGeneric(handle);
     param.signal = signal_type;
-    param.data = Memory::GetPointer(buffer);
+    param.buffer.resize(buffer_size);
+    Memory::ReadBlock(buffer, param.buffer.data(), param.buffer.size());
 
     cmd_buff[1] = dest_applet->ReceiveParameter(param).raw;
 
@@ -199,16 +203,15 @@ void ReceiveParameter(Service::Interface* self) {
     cmd_buff[1] = RESULT_SUCCESS.raw; // No error
     cmd_buff[2] = next_parameter.sender_id;
     cmd_buff[3] = next_parameter.signal; // Signal type
-    cmd_buff[4] = next_parameter.buffer_size; // Parameter buffer size
+    cmd_buff[4] = next_parameter.buffer.size(); // Parameter buffer size
     cmd_buff[5] = 0x10;
     cmd_buff[6] = 0;
     if (next_parameter.object != nullptr)
         cmd_buff[6] = Kernel::g_handle_table.Create(next_parameter.object).MoveFrom();
-    cmd_buff[7] = (next_parameter.buffer_size << 14) | 2;
+    cmd_buff[7] = (next_parameter.buffer.size() << 14) | 2;
     cmd_buff[8] = buffer;
 
-    if (next_parameter.data)
-        memcpy(Memory::GetPointer(buffer), next_parameter.data, std::min(buffer_size, next_parameter.buffer_size));
+    Memory::WriteBlock(buffer, next_parameter.buffer.data(), next_parameter.buffer.size());
 
     LOG_WARNING(Service_APT, "called app_id=0x%08X, buffer_size=0x%08X", app_id, buffer_size);
 }
@@ -222,16 +225,15 @@ void GlanceParameter(Service::Interface* self) {
     cmd_buff[1] = RESULT_SUCCESS.raw; // No error
     cmd_buff[2] = next_parameter.sender_id;
     cmd_buff[3] = next_parameter.signal; // Signal type
-    cmd_buff[4] = next_parameter.buffer_size; // Parameter buffer size
+    cmd_buff[4] = next_parameter.buffer.size(); // Parameter buffer size
     cmd_buff[5] = 0x10;
     cmd_buff[6] = 0;
     if (next_parameter.object != nullptr)
         cmd_buff[6] = Kernel::g_handle_table.Create(next_parameter.object).MoveFrom();
-    cmd_buff[7] = (next_parameter.buffer_size << 14) | 2;
+    cmd_buff[7] = (next_parameter.buffer.size() << 14) | 2;
     cmd_buff[8] = buffer;
 
-    if (next_parameter.data)
-        memcpy(Memory::GetPointer(buffer), next_parameter.data, std::min(buffer_size, next_parameter.buffer_size));
+    Memory::WriteBlock(buffer, next_parameter.buffer.data(), std::min(static_cast<size_t>(buffer_size), next_parameter.buffer.size()));
 
     LOG_WARNING(Service_APT, "called app_id=0x%08X, buffer_size=0x%08X", app_id, buffer_size);
 }
@@ -257,6 +259,10 @@ void PrepareToStartApplication(Service::Interface* self) {
     u32 title_info3  = cmd_buff[3];
     u32 title_info4  = cmd_buff[4];
     u32 flags        = cmd_buff[5];
+
+    if (flags & 0x00000100) {
+        unknown_ns_state_field = 1;
+    }
 
     cmd_buff[1] = RESULT_SUCCESS.raw; // No error
 
@@ -365,12 +371,34 @@ void StartLibraryApplet(Service::Interface* self) {
         return;
     }
 
+    size_t buffer_size = cmd_buff[2];
+    VAddr buffer_addr = cmd_buff[6];
+
     AppletStartupParameter parameter;
-    parameter.buffer_size = cmd_buff[2];
     parameter.object = Kernel::g_handle_table.GetGeneric(cmd_buff[4]);
-    parameter.data = Memory::GetPointer(cmd_buff[6]);
+    parameter.buffer.resize(buffer_size);
+    Memory::ReadBlock(buffer_addr, parameter.buffer.data(), parameter.buffer.size());
 
     cmd_buff[1] = applet->Start(parameter).raw;
+}
+
+void SetNSStateField(Service::Interface* self) {
+    u32* cmd_buff = Kernel::GetCommandBuffer();
+
+    unknown_ns_state_field = cmd_buff[1];
+
+    cmd_buff[0] = IPC::MakeHeader(0x55, 1, 0);
+    cmd_buff[1] = RESULT_SUCCESS.raw;
+    LOG_WARNING(Service_APT, "(STUBBED) unknown_ns_state_field=%u", unknown_ns_state_field);
+}
+
+void GetNSStateField(Service::Interface* self) {
+    u32* cmd_buff = Kernel::GetCommandBuffer();
+
+    cmd_buff[0] = IPC::MakeHeader(0x56, 2, 0);
+    cmd_buff[1] = RESULT_SUCCESS.raw;
+    cmd_buff[8] = unknown_ns_state_field;
+    LOG_WARNING(Service_APT, "(STUBBED) unknown_ns_state_field=%u", unknown_ns_state_field);
 }
 
 void GetAppletInfo(Service::Interface* self) {
@@ -408,6 +436,29 @@ void GetStartupArgument(Service::Interface* self) {
     cmd_buff[2] = (parameter_size > 0) ? 1 : 0;
 }
 
+void CheckNew3DSApp(Service::Interface* self) {
+    u32* cmd_buff = Kernel::GetCommandBuffer();
+
+    if (unknown_ns_state_field) {
+        cmd_buff[1] = RESULT_SUCCESS.raw;
+        cmd_buff[2] = 0;
+    } else {
+        PTM::CheckNew3DS(self);
+    }
+
+    cmd_buff[0] = IPC::MakeHeader(0x101, 2, 0);
+    LOG_WARNING(Service_APT, "(STUBBED) called");
+}
+
+void CheckNew3DS(Service::Interface* self) {
+    u32* cmd_buff = Kernel::GetCommandBuffer();
+
+    PTM::CheckNew3DS(self);
+
+    cmd_buff[0] = IPC::MakeHeader(0x102, 2, 0);
+    LOG_WARNING(Service_APT, "(STUBBED) called");
+}
+
 void Init() {
     AddService(new APT_A_Interface);
     AddService(new APT_S_Interface);
@@ -441,6 +492,7 @@ void Init() {
     lock = Kernel::Mutex::Create(false, "APT_U:Lock");
 
     cpu_percent = 0;
+    unknown_ns_state_field = 0;
 
     // TODO(bunnei): Check if these are created in Initialize or on APT process startup.
     notification_event = Kernel::Event::Create(Kernel::ResetType::OneShot, "APT_U:Notification");

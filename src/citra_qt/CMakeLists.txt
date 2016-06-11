@@ -2,8 +2,6 @@ set(CMAKE_AUTOMOC ON)
 set(CMAKE_INCLUDE_CURRENT_DIR ON)
 
 set(SRCS
-            config/controller_config.cpp
-            config/controller_config_util.cpp
             config.cpp
             debugger/callstack.cpp
             debugger/disassembler.cpp
@@ -11,7 +9,7 @@ set(SRCS
             debugger/graphics_breakpoint_observer.cpp
             debugger/graphics_breakpoints.cpp
             debugger/graphics_cmdlists.cpp
-            debugger/graphics_framebuffer.cpp
+            debugger/graphics_surface.cpp
             debugger/graphics_tracing.cpp
             debugger/graphics_vertex_shader.cpp
             debugger/profiler.cpp
@@ -33,8 +31,6 @@ set(SRCS
             )
 
 set(HEADERS
-            config/controller_config.h
-            config/controller_config_util.h
             config.h
             debugger/callstack.h
             debugger/disassembler.h
@@ -43,7 +39,7 @@ set(HEADERS
             debugger/graphics_breakpoints.h
             debugger/graphics_breakpoints_p.h
             debugger/graphics_cmdlists.h
-            debugger/graphics_framebuffer.h
+            debugger/graphics_surface.h
             debugger/graphics_tracing.h
             debugger/graphics_vertex_shader.h
             debugger/profiler.h
@@ -65,7 +61,6 @@ set(HEADERS
             )
 
 set(UIS
-            config/controller_config.ui
             debugger/callstack.ui
             debugger/disassembler.ui
             debugger/profiler.ui
