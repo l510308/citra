@@ -3,14 +3,11 @@
 // Refer to the license.txt file included.
 
 #include <QSettings>
-#include <QString>
-#include <QStringList>
 
 #include "citra_qt/config.h"
 #include "citra_qt/ui_settings.h"
 
 #include "common/file_util.h"
-#include "core/settings.h"
 
 Config::Config() {
     // TODO: Don't hardcode the path; let the frontend decide where to put the config files.
@@ -21,7 +18,7 @@ Config::Config() {
     Reload();
 }
 
-static const std::array<QVariant, Settings::NativeInput::NUM_INPUTS> defaults = {
+const std::array<QVariant, Settings::NativeInput::NUM_INPUTS> Config::defaults = {
     // directly mapped keys
     Qt::Key_A, Qt::Key_S, Qt::Key_Z, Qt::Key_X,
     Qt::Key_Q, Qt::Key_W, Qt::Key_1, Qt::Key_2,
@@ -48,9 +45,10 @@ void Config::ReadValues() {
     qt_config->endGroup();
 
     qt_config->beginGroup("Renderer");
-    Settings::values.use_hw_renderer = qt_config->value("use_hw_renderer", false).toBool();
+    Settings::values.use_hw_renderer = qt_config->value("use_hw_renderer", true).toBool();
     Settings::values.use_shader_jit = qt_config->value("use_shader_jit", true).toBool();
     Settings::values.use_scaled_resolution = qt_config->value("use_scaled_resolution", false).toBool();
+    Settings::values.use_vsync = qt_config->value("use_vsync", false).toBool();
 
     Settings::values.bg_red   = qt_config->value("bg_red",   1.0).toFloat();
     Settings::values.bg_green = qt_config->value("bg_green", 1.0).toFloat();
@@ -59,6 +57,7 @@ void Config::ReadValues() {
 
     qt_config->beginGroup("Audio");
     Settings::values.sink_id = qt_config->value("output_engine", "auto").toString().toStdString();
+    Settings::values.enable_audio_stretching = qt_config->value("enable_audio_stretching", true).toBool();
     qt_config->endGroup();
 
     qt_config->beginGroup("Data Storage");
@@ -109,7 +108,7 @@ void Config::ReadValues() {
             UISettings::values.shortcuts.emplace_back(
                         UISettings::Shortcut(group + "/" + hotkey,
                                              UISettings::ContextualShortcut(qt_config->value("KeySeq").toString(),
-                                                                           qt_config->value("Context").toInt())));
+                                                                            qt_config->value("Context").toInt())));
             qt_config->endGroup();
         }
 
@@ -142,6 +141,7 @@ void Config::SaveValues() {
     qt_config->setValue("use_hw_renderer", Settings::values.use_hw_renderer);
     qt_config->setValue("use_shader_jit", Settings::values.use_shader_jit);
     qt_config->setValue("use_scaled_resolution", Settings::values.use_scaled_resolution);
+    qt_config->setValue("use_vsync", Settings::values.use_vsync);
 
     // Cast to double because Qt's written float values are not human-readable
     qt_config->setValue("bg_red",   (double)Settings::values.bg_red);
@@ -151,6 +151,7 @@ void Config::SaveValues() {
 
     qt_config->beginGroup("Audio");
     qt_config->setValue("output_engine", QString::fromStdString(Settings::values.sink_id));
+    qt_config->setValue("enable_audio_stretching", Settings::values.enable_audio_stretching);
     qt_config->endGroup();
 
     qt_config->beginGroup("Data Storage");
@@ -191,7 +192,7 @@ void Config::SaveValues() {
     qt_config->endGroup();
 
     qt_config->beginGroup("Shortcuts");
-    for (auto shortcut : UISettings::values.shortcuts ) {
+    for (auto shortcut : UISettings::values.shortcuts) {
         qt_config->setValue(shortcut.first + "/KeySeq", shortcut.second.first);
         qt_config->setValue(shortcut.first + "/Context", shortcut.second.second);
     }

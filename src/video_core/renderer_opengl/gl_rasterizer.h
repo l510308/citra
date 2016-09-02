@@ -56,6 +56,8 @@ union PicaShaderConfig {
 
         const auto& regs = Pica::g_state.regs;
 
+        state.scissor_test_mode = regs.scissor_test.mode;
+
         state.depthmap_enable = regs.depthmap_enable;
 
         state.alpha_test_func = regs.output_merger.alpha_test.enable ?
@@ -75,6 +77,9 @@ union PicaShaderConfig {
             state.tev_stages[i].ops_raw = tev_stage.ops_raw;
             state.tev_stages[i].scales_raw = tev_stage.scales_raw;
         }
+
+        state.fog_mode = regs.fog_mode;
+        state.fog_flip = regs.fog_flip;
 
         state.combiner_buffer_input =
             regs.tev_combiner_buffer_input.update_mask_rgb.Value() |
@@ -168,13 +173,15 @@ union PicaShaderConfig {
     };
 
     struct State {
-
         Pica::Regs::CompareFunc alpha_test_func;
+        Pica::Regs::ScissorMode scissor_test_mode;
         Pica::Regs::TextureConfig::TextureType texture0_type;
         std::array<TevStageConfigRaw, 6> tev_stages;
         u8 combiner_buffer_input;
 
         Pica::Regs::DepthBuffering depthmap_enable;
+        Pica::Regs::FogMode fog_mode;
+        bool fog_flip;
 
         struct {
             struct {
@@ -316,19 +323,27 @@ private:
         GLfloat dist_atten_scale;
     };
 
-    /// Uniform structure for the Uniform Buffer Object, all members must be 16-byte aligned
+    /// Uniform structure for the Uniform Buffer Object, all vectors must be 16-byte aligned
+    // NOTE: Always keep a vec4 at the end. The GL spec is not clear wether the alignment at
+    //       the end of a uniform block is included in UNIFORM_BLOCK_DATA_SIZE or not.
+    //       Not following that rule will cause problems on some AMD drivers.
     struct UniformData {
-        // A vec4 color for each of the six tev stages
-        GLvec4 const_color[6];
-        GLvec4 tev_combiner_buffer_color;
+        alignas(8) GLvec2 framebuffer_scale;
         GLint alphatest_ref;
         GLfloat depth_scale;
         GLfloat depth_offset;
+        GLint scissor_x1;
+        GLint scissor_y1;
+        GLint scissor_x2;
+        GLint scissor_y2;
+        alignas(16) GLvec3 fog_color;
         alignas(16) GLvec3 lighting_global_ambient;
         LightSrc light_src[8];
+        alignas(16) GLvec4 const_color[6]; // A vec4 color for each of the six tev stages
+        alignas(16) GLvec4 tev_combiner_buffer_color;
     };
 
-    static_assert(sizeof(UniformData) == 0x390, "The size of the UniformData structure has changed, update the structure in the shader");
+    static_assert(sizeof(UniformData) == 0x3C0, "The size of the UniformData structure has changed, update the structure in the shader");
     static_assert(sizeof(UniformData) < 16384, "UniformData structure must be less than 16kb as per the OpenGL spec");
 
     /// Sets the OpenGL shader in accordance with the current PICA register state
@@ -352,6 +367,10 @@ private:
     /// Syncs the blend color to match the PICA register
     void SyncBlendColor();
 
+    /// Syncs the fog states to match the PICA register
+    void SyncFogColor();
+    void SyncFogLUT();
+
     /// Syncs the alpha test states to match the PICA register
     void SyncAlphaTest();
 
@@ -372,6 +391,9 @@ private:
 
     /// Syncs the depth test states to match the PICA register
     void SyncDepthTest();
+
+    /// Syncs the scissor test state to match the PICA register
+    void SyncScissorTest();
 
     /// Syncs the TEV combiner color buffer to match the PICA register
     void SyncCombinerColor();
@@ -419,6 +441,7 @@ private:
     struct {
         UniformData data;
         bool lut_dirty[6];
+        bool fog_lut_dirty;
         bool dirty;
     } uniform_block_data = {};
 
@@ -430,4 +453,7 @@ private:
 
     std::array<OGLTexture, 6> lighting_luts;
     std::array<std::array<GLvec4, 256>, 6> lighting_lut_data{};
+
+    OGLTexture fog_lut;
+    std::array<GLuint, 128> fog_lut_data{};
 };

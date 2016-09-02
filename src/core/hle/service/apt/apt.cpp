@@ -37,6 +37,8 @@ static u32 cpu_percent; ///< CPU time available to the running application
 // APT::CheckNew3DSApp will check this unknown_ns_state_field to determine processing mode
 static u8 unknown_ns_state_field;
 
+static ScreencapPostPermission screen_capture_post_permission;
+
 /// Parameter data to be returned in the next call to Glance/ReceiveParameter
 static MessageParameter next_parameter;
 
@@ -51,7 +53,7 @@ void Initialize(Service::Interface* self) {
     u32 app_id = cmd_buff[1];
     u32 flags  = cmd_buff[2];
 
-    cmd_buff[2] = IPC::MoveHandleDesc(2);
+    cmd_buff[2] = IPC::CopyHandleDesc(2);
     cmd_buff[3] = Kernel::g_handle_table.Create(notification_event).MoveFrom();
     cmd_buff[4] = Kernel::g_handle_table.Create(parameter_event).MoveFrom();
 
@@ -70,15 +72,17 @@ void Initialize(Service::Interface* self) {
 void GetSharedFont(Service::Interface* self) {
     u32* cmd_buff = Kernel::GetCommandBuffer();
 
+    if (!shared_font_mem) {
+        LOG_ERROR(Service_APT, "shared font file missing - go dump it from your 3ds");
+        cmd_buff[0] = IPC::MakeHeader(0x44, 2, 2);
+        cmd_buff[1] = -1;  // TODO: Find the right error code
+        return;
+    }
+
     // The shared font has to be relocated to the new address before being passed to the application.
     VAddr target_address = Memory::PhysicalToVirtualAddress(shared_font_mem->linear_heap_phys_address);
-    // The shared font dumped by 3dsutils (https://github.com/citra-emu/3dsutils) uses this address as base,
-    // so we relocate it from there to our real address.
-    // TODO(Subv): This address is wrong if the shared font is dumped from a n3DS,
-    // we need a way to automatically calculate the original address of the font from the file.
-    static const VAddr SHARED_FONT_VADDR = 0x18000000;
     if (!shared_font_relocated) {
-        BCFNT::RelocateSharedFont(shared_font_mem, SHARED_FONT_VADDR, target_address);
+        BCFNT::RelocateSharedFont(shared_font_mem, target_address);
         shared_font_relocated = true;
     }
     cmd_buff[0] = IPC::MakeHeader(0x44, 2, 2);
@@ -87,7 +91,7 @@ void GetSharedFont(Service::Interface* self) {
     // the real APT service calculates this address by scanning the entire address space (using svcQueryMemory)
     // and searches for an allocation of the same size as the Shared Font.
     cmd_buff[2] = target_address;
-    cmd_buff[3] = IPC::MoveHandleDesc();
+    cmd_buff[3] = IPC::CopyHandleDesc();
     cmd_buff[4] = Kernel::g_handle_table.Create(shared_font_mem).MoveFrom();
 }
 
@@ -382,23 +386,23 @@ void StartLibraryApplet(Service::Interface* self) {
     cmd_buff[1] = applet->Start(parameter).raw;
 }
 
-void SetNSStateField(Service::Interface* self) {
+void SetScreenCapPostPermission(Service::Interface* self) {
     u32* cmd_buff = Kernel::GetCommandBuffer();
 
-    unknown_ns_state_field = cmd_buff[1];
+    screen_capture_post_permission = static_cast<ScreencapPostPermission>(cmd_buff[1] & 0xF);
 
     cmd_buff[0] = IPC::MakeHeader(0x55, 1, 0);
     cmd_buff[1] = RESULT_SUCCESS.raw;
-    LOG_WARNING(Service_APT, "(STUBBED) unknown_ns_state_field=%u", unknown_ns_state_field);
+    LOG_WARNING(Service_APT, "(STUBBED) screen_capture_post_permission=%u", screen_capture_post_permission);
 }
 
-void GetNSStateField(Service::Interface* self) {
+void GetScreenCapPostPermission(Service::Interface* self) {
     u32* cmd_buff = Kernel::GetCommandBuffer();
 
     cmd_buff[0] = IPC::MakeHeader(0x56, 2, 0);
     cmd_buff[1] = RESULT_SUCCESS.raw;
-    cmd_buff[8] = unknown_ns_state_field;
-    LOG_WARNING(Service_APT, "(STUBBED) unknown_ns_state_field=%u", unknown_ns_state_field);
+    cmd_buff[2] = static_cast<u32>(screen_capture_post_permission);
+    LOG_WARNING(Service_APT, "(STUBBED) screen_capture_post_permission=%u", screen_capture_post_permission);
 }
 
 void GetAppletInfo(Service::Interface* self) {
@@ -493,6 +497,7 @@ void Init() {
 
     cpu_percent = 0;
     unknown_ns_state_field = 0;
+    screen_capture_post_permission = ScreencapPostPermission::CleanThePermission; // TODO(JamePeng): verify the initial value
 
     // TODO(bunnei): Check if these are created in Initialize or on APT process startup.
     notification_event = Kernel::Event::Create(Kernel::ResetType::OneShot, "APT_U:Notification");
