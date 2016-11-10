@@ -15,6 +15,7 @@ set(SRCS
             debugger/profiler.cpp
             debugger/ramview.cpp
             debugger/registers.cpp
+            debugger/wait_tree.cpp
             util/spinbox.cpp
             util/util.cpp
             bootmanager.cpp
@@ -48,6 +49,7 @@ set(HEADERS
             debugger/profiler.h
             debugger/ramview.h
             debugger/registers.h
+            debugger/wait_tree.h
             util/spinbox.h
             util/util.h
             bootmanager.h
@@ -102,7 +104,7 @@ target_link_libraries(citra-qt core video_core audio_core common qhexedit)
 target_link_libraries(citra-qt ${OPENGL_gl_LIBRARY} ${CITRA_QT_LIBS})
 target_link_libraries(citra-qt ${PLATFORM_LIBRARIES} Threads::Threads)
 
-if(${CMAKE_SYSTEM_NAME} MATCHES "Linux|FreeBSD|OpenBSD|NetBSD")
+if(UNIX AND NOT APPLE)
     install(TARGETS citra-qt RUNTIME DESTINATION "${CMAKE_INSTALL_PREFIX}/bin")
 endif()
 
