@@ -6,7 +6,6 @@
 #include <cstddef>
 #include <cstdlib>
 #include <memory>
-#include <thread>
 #include <glad/glad.h>
 #include "common/assert.h"
 #include "common/bit_field.h"
@@ -149,16 +148,8 @@ void RendererOpenGL::SwapBuffers() {
     auto& profiler = Common::Profiling::GetProfilingManager();
     profiler.FinishFrame();
     {
-		auto aggregator = Common::Profiling::GetTimingResultsAggregator();
-		aggregator->AddFrame(profiler.GetPreviousFrameResults());
-		if (VideoCore::g_toggle_framelimit_enabled) {
-			Common::Profiling::Duration frame_time =
-				aggregator->GetAggregatedResults().frame_time.avg;
-			using LongMs = std::chrono::duration<long, std::chrono::microseconds::period>;
-			std::chrono::microseconds average_frame_time =
-				std::chrono::microseconds(std::chrono::duration_cast<LongMs>(frame_time).count());
-			FrameLimiter(average_frame_time, std::chrono::microseconds(1000000) / 60);
-		}
+        auto aggregator = Common::Profiling::GetTimingResultsAggregator();
+        aggregator->AddFrame(profiler.GetPreviousFrameResults());
     }
 
     // Swap buffers
@@ -599,13 +590,6 @@ bool RendererOpenGL::Init() {
 	RefreshRasterizerSetting();
 
 	return true;
-}
-void RendererOpenGL::FrameLimiter(std::chrono::microseconds average_frame_time, std::chrono::microseconds frame_limit) {
-    // calculate  difference between average frame time and frame time
-    // for the framelimit, and sleep for the difference in time.
-		if (average_frame_time < frame_limit) {
-		std::this_thread::sleep_for(frame_limit - average_frame_time);
-	}
 }
 
 /// Shutdown the renderer

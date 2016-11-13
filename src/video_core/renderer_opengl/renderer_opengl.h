@@ -9,7 +9,6 @@
 #include <thread>
 #include "common/common_types.h"
 #include "common/math_util.h"
-#include "common/profiler_reporting.h"
 #include "core/hw/gpu.h"
 #include "video_core/renderer_base.h"
 #include "video_core/renderer_opengl/gl_resource_manager.h"
@@ -56,11 +55,12 @@ public:
 
 private:
     void InitOpenGLObjects();
-    void ConfigureFramebufferTexture(TextureInfo& texture, const GPU::Regs::FramebufferConfig& framebuffer);
+    void ConfigureFramebufferTexture(TextureInfo& texture,
+                                     const GPU::Regs::FramebufferConfig& framebuffer);
     void DrawScreens();
-    void DrawSingleScreenRotated(const ScreenInfo& screen_info, float x, float y, float w, float h, bool left, bool right);
+    void DrawSingleScreenRotated(const ScreenInfo& screen_info, float x, float y, float w, float h,
+                                 bool left, bool right);
     void UpdateFramerate();
-	void FrameLimiter(std::chrono::microseconds average_frame_time, std::chrono::microseconds frame_limit);
 
     // Loads framebuffer from emulated memory into the display information structure
     void LoadFBToScreenInfo(const GPU::Regs::FramebufferConfig& framebuffer,
