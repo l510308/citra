@@ -6,6 +6,7 @@
 
 #include <array>
 #include <glad/glad.h>
+#include <thread>
 #include "common/common_types.h"
 #include "common/math_util.h"
 #include "common/profiler_reporting.h"
@@ -59,7 +60,7 @@ private:
     void DrawScreens();
     void DrawSingleScreenRotated(const ScreenInfo& screen_info, float x, float y, float w, float h, bool left, bool right);
     void UpdateFramerate();
-	void FrameLimiter(float average_frame_time, uint32_t frame_limit);
+	void FrameLimiter(std::chrono::microseconds average_frame_time, std::chrono::microseconds frame_limit);
 
     // Loads framebuffer from emulated memory into the display information structure
     void LoadFBToScreenInfo(const GPU::Regs::FramebufferConfig& framebuffer,
