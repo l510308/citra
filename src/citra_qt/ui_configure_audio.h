@@ -35,6 +35,9 @@ public:
     QLabel *label;
     QComboBox *output_sink_combo_box;
     QCheckBox *toggle_audio_stretching;
+    QHBoxLayout *hboxLayout1;
+    QLabel *label1;
+    QComboBox *audio_device_combo_box;
     QSpacerItem *spacerItem;
 
     void setupUi(QWidget *ConfigureAudio)
@@ -67,6 +70,21 @@ public:
 
         vboxLayout1->addWidget(toggle_audio_stretching);
 
+        hboxLayout1 = new QHBoxLayout();
+        hboxLayout1->setObjectName(QStringLiteral("hboxLayout1"));
+        label1 = new QLabel(groupBox);
+        label1->setObjectName(QStringLiteral("label1"));
+
+        hboxLayout1->addWidget(label1);
+
+        audio_device_combo_box = new QComboBox(groupBox);
+        audio_device_combo_box->setObjectName(QStringLiteral("audio_device_combo_box"));
+
+        hboxLayout1->addWidget(audio_device_combo_box);
+
+
+        vboxLayout1->addLayout(hboxLayout1);
+
 
         vboxLayout->addWidget(groupBox);
 
@@ -88,6 +106,7 @@ public:
 #ifndef QT_NO_TOOLTIP
         toggle_audio_stretching->setToolTip(QApplication::translate("ConfigureAudio", "This post-processing effect adjusts audio speed to match emulation speed and helps prevent audio stutter. This however increases audio latency.", 0));
 #endif // QT_NO_TOOLTIP
+        label1->setText(QApplication::translate("ConfigureAudio", "Audio Device:", 0));
         Q_UNUSED(ConfigureAudio);
     } // retranslateUi
 
