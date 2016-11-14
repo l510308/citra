@@ -48,8 +48,7 @@ void Config::ReadValues() {
     qt_config->beginGroup("Renderer");
     Settings::values.use_hw_renderer = qt_config->value("use_hw_renderer", true).toBool();
     Settings::values.use_shader_jit = qt_config->value("use_shader_jit", true).toBool();
-    Settings::values.use_scaled_resolution =
-    qt_config->value("use_scaled_resolution", false).toBool();
+    Settings::values.use_scaled_resolution = qt_config->value("use_scaled_resolution", false).toBool();
     Settings::values.use_vsync = qt_config->value("use_vsync", false).toBool();
 	Settings::values.toggle_framelimit = qt_config->value("toggle_framelimit", false).toBool();
 
@@ -65,8 +64,8 @@ void Config::ReadValues() {
 	
     qt_config->beginGroup("Audio");
     Settings::values.sink_id = qt_config->value("output_engine", "auto").toString().toStdString();
-    Settings::values.enable_audio_stretching =
-    qt_config->value("enable_audio_stretching", true).toBool();
+    Settings::values.enable_audio_stretching = qt_config->value("enable_audio_stretching", true).toBool();
+	Settings::values.audio_device_id = qt_config->value("output_device", "auto").toString().toStdString();
     qt_config->endGroup();
 
     qt_config->beginGroup("Data Storage");
@@ -92,14 +91,10 @@ void Config::ReadValues() {
     qt_config->beginGroup("UILayout");
     UISettings::values.geometry = qt_config->value("geometry").toByteArray();
     UISettings::values.state = qt_config->value("state").toByteArray();
-    UISettings::values.renderwindow_geometry =
-    qt_config->value("geometryRenderWindow").toByteArray();
-    UISettings::values.gamelist_header_state =
-    qt_config->value("gameListHeaderState").toByteArray();
-    UISettings::values.microprofile_geometry =
-    qt_config->value("microProfileDialogGeometry").toByteArray();
-    UISettings::values.microprofile_visible =
-    qt_config->value("microProfileDialogVisible", false).toBool();
+    UISettings::values.renderwindow_geometry = qt_config->value("geometryRenderWindow").toByteArray();
+    UISettings::values.gamelist_header_state = qt_config->value("gameListHeaderState").toByteArray();
+    UISettings::values.microprofile_geometry = qt_config->value("microProfileDialogGeometry").toByteArray();
+    UISettings::values.microprofile_visible = qt_config->value("microProfileDialogVisible", false).toBool();
     qt_config->endGroup();
 
     qt_config->beginGroup("Paths");
@@ -177,6 +172,7 @@ void Config::SaveValues() {
     qt_config->beginGroup("Audio");
     qt_config->setValue("output_engine", QString::fromStdString(Settings::values.sink_id));
     qt_config->setValue("enable_audio_stretching", Settings::values.enable_audio_stretching);
+	qt_config->setValue("output_device", QString::fromStdString(Settings::values.audio_device_id));
     qt_config->endGroup();
 
     qt_config->beginGroup("Data Storage");
