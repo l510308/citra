@@ -357,6 +357,12 @@ static void WritePicaReg(u32 id, u32 value, u32 mask) {
             g_debug_context->recorder->MemoryAccessed(Memory::GetPhysicalPointer(range.first),
                                                       range.second, range.first);
         }
+		
+            VideoCore::g_renderer->Rasterizer()->DrawTriangles();
+
+            if (g_debug_context) {
+                g_debug_context->OnEvent(DebugContext::Event::FinishedPrimitiveBatch, nullptr);
+            }
 
         break;
     }
