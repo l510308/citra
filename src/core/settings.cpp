@@ -28,6 +28,9 @@ void Apply() {
         VideoCore::g_emu_window->UpdateCurrentFramebufferLayout(layout.width, layout.height);
     }
 
+    // Ensure that texture caches are empty
+    VideoCore::g_is_rasterizer_dirty = true;
+
     AudioCore::SelectSink(values.sink_id);
     AudioCore::EnableStretching(values.enable_audio_stretching);
 
