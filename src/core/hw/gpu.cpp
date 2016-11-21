@@ -4,6 +4,7 @@
 
 #include <cstring>
 #include <numeric>
+#include <thread>
 #include <type_traits>
 #include "common/color.h"
 #include "common/common_types.h"
@@ -39,6 +40,8 @@ static int vblank_event;
 static u64 frame_count;
 /// True if the last frame was skipped
 static bool last_skip_frame;
+/// Start clock for frame limiter
+static std::chrono::high_resolution_clock::time_point update_time_point = std::chrono::high_resolution_clock::now();
 
 template <typename T>
 inline void Read(T& var, const u32 raw_addr) {
@@ -549,6 +552,12 @@ static void VBlankCallback(u64 userdata, int cycles_late) {
 
     // Reschedule recurrent event
     CoreTiming::ScheduleEvent(frame_ticks - cycles_late, vblank_event);
+
+    // Frame limiting
+    if (Settings::values.toggle_framelimit) {
+        FrameLimiter();
+    }
+    update_time_point = std::chrono::high_resolution_clock::now();
 }
 
 /// Initialize hardware
@@ -589,6 +598,18 @@ void Init() {
     CoreTiming::ScheduleEvent(frame_ticks, vblank_event);
 
     LOG_DEBUG(HW_GPU, "initialized OK");
+}
+
+// Frame Limiter
+void FrameLimiter() {
+    std::chrono::duration<long, std::nano> time_difference =
+        (std::chrono::high_resolution_clock::now() - update_time_point);
+    uint32_t frame_limit = 60;
+    const std::chrono::milliseconds expected_frame_time =
+        std::chrono::milliseconds(1000 / frame_limit);
+    if (time_difference < expected_frame_time) {
+        std::this_thread::sleep_for(expected_frame_time - time_difference);
+    }
 }
 
 /// Shutdown hardware

@@ -327,6 +327,9 @@ void Write(u32 addr, const T data);
 /// Initialize hardware
 void Init();
 
+/// Frame Limiter
+void FrameLimiter();
+
 /// Shutdown hardware
 void Shutdown();
 

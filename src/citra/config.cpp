@@ -69,6 +69,7 @@ void Config::ReadValues() {
     Settings::values.bg_red = (float)sdl2_config->GetReal("Renderer", "bg_red", 1.0);
     Settings::values.bg_green = (float)sdl2_config->GetReal("Renderer", "bg_green", 1.0);
     Settings::values.bg_blue = (float)sdl2_config->GetReal("Renderer", "bg_blue", 1.0);
+    Settings::values.toggle_framelimit = sdl2_config->GetBoolean("Renderer", "toggle_framelimit", true);
 
     // Layout
 	Settings::values.layout_option = static_cast<Settings::LayoutOption>(sdl2_config->GetInteger("Layout", "layout_option", 0));

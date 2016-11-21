@@ -39,7 +39,7 @@ pad_circle_modifier_scale =
 
 [Core]
 # Whether to use the Just-In-Time (JIT) compiler for CPU emulation
-# 0: Interpreter (slow), 1 (default): JIT (fast)
+# 0: Interpreter (slow), 1 (default):On : JIT (fast)
 use_cpu_jit =
 
 # The applied frameskip amount. Must be a power of two.
@@ -60,8 +60,12 @@ use_shader_jit =
 use_scaled_resolution =
 
 # Whether to enable V-Sync (caps the framerate at 60FPS) or not.
-# 0 (default): Off, 1: On
+# 0: Off , 1  (default): On
 use_vsync =
+
+#Whether to toggle frame limiter on or off.
+# 0: Off , 1  (default): On
+toggle_framelimit =
 
 [Layout]
 # Layout for the screen inside the render window.
