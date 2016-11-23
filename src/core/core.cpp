@@ -47,7 +47,7 @@ void RunLoop(int tight_loop) {
         HLE::Reschedule(__func__);
     } else {
         g_app_core->Run(tight_loop);
-        n = ++n % 4;
+        n =--n % 8;
         if (!n) {
             HLE::Reschedule(__func__);
         }
